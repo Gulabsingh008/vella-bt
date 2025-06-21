@@ -11,13 +11,10 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Configuration from environment variables (for Koyeb)
+# Configuration from environment variables
 import os
 BOT_TOKENS = os.getenv("BOT_TOKENS", "").split(";")  # Format: "token1;token2;control_token"
-if not all(BOT_TOKENS) or len(BOT_TOKENS) < 2:
-    logger.error("Invalid BOT_TOKENS configuration!")
-    exit(1)
-ADMIN_IDS = [int(id) for id in os.getenv("ADMIN_IDS", "1114789110").split(",") if id]
+ADMIN_IDS = [int(id) for id in os.getenv("ADMIN_IDS", "").split(",") if id]
 SPAM_INTERVAL = int(os.getenv("SPAM_INTERVAL", 3600))  # 1 hour default
 
 class BotManager:
@@ -25,11 +22,8 @@ class BotManager:
         self.auto_spam = False
         self.last_spam_time = {}
         self.bots = []
-        
-        if not BOT_TOKENS:
-            raise ValueError("No bot tokens provided in environment variables")
 
-        async def initialize_bots(self):
+    async def initialize_bots(self):
         """Initialize all bot instances with better error handling"""
         if not BOT_TOKENS:
             logger.error("No BOT_TOKENS found in environment variables!")
@@ -39,6 +33,7 @@ class BotManager:
             control_token = BOT_TOKENS[-1]
             worker_tokens = BOT_TOKENS[:-1]
             
+            # Initialize worker bots
             for i, token in enumerate(worker_tokens):
                 if not token or ":" not in token:
                     logger.error(f"Invalid token format for bot {i}")
@@ -53,15 +48,18 @@ class BotManager:
                 except Exception as e:
                     logger.error(f"Failed to start worker bot {i}: {str(e)}")
 
-        # Initialize control bot
-        try:
-            control_bot = Client("control_bot", bot_token=control_token)
-            self._add_control_handlers(control_bot)
-            await control_bot.start()
-            self.bots.append(control_bot)
-            logger.info(f"Control bot {control_bot.me.username} started")
+            # Initialize control bot
+            try:
+                control_bot = Client("control_bot", bot_token=control_token)
+                self._add_control_handlers(control_bot)
+                await control_bot.start()
+                self.bots.append(control_bot)
+                logger.info(f"Control bot {control_bot.me.username} started")
+            except Exception as e:
+                logger.error(f"Failed to start control bot: {e}")
+
         except Exception as e:
-            logger.error(f"Failed to start control bot: {e}")
+            logger.error(f"Initialization failed: {e}")
 
     def _add_basic_handlers(self, bot):
         """Add basic command handlers to worker bots"""
@@ -98,11 +96,6 @@ class BotManager:
                 f"\n\nSpam Mode: {'ON' if self.auto_spam else 'OFF'}"
             )
 
-    async def _can_spam(self, chat_id):
-        """Check if we can spam this chat (cooldown)"""
-        last_time = self.last_spam_time.get(chat_id, datetime.min)
-        return (datetime.now() - last_time) > timedelta(seconds=SPAM_INTERVAL)
-
     async def spam_channels(self):
         """Controlled spamming function"""
         while True:
@@ -112,7 +105,7 @@ class BotManager:
                         async for dialog in bot.get_dialogs():
                             if dialog.chat.type in ["channel", "supergroup"]:
                                 chat_id = dialog.chat.id
-                                if await self._can_spam(chat_id):
+                                if (datetime.now() - self.last_spam_time.get(chat_id, datetime.min)) > timedelta(seconds=SPAM_INTERVAL):
                                     try:
                                         await bot.send_message(
                                             chat_id,
@@ -125,17 +118,12 @@ class BotManager:
                                         logger.warning(f"Failed to send to {chat_id}: {e}")
                     except Exception as e:
                         logger.error(f"Error in spam loop: {e}")
-            
-            await asyncio.sleep(60)  # Check every minute
+            await asyncio.sleep(60)
 
 async def main():
     manager = BotManager()
     await manager.initialize_bots()
-    
-    # Start spam loop as background task
     asyncio.create_task(manager.spam_channels())
-    
-    # Keep running
     await asyncio.Event().wait()
 
 if __name__ == "__main__":
