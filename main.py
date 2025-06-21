@@ -13,8 +13,8 @@ logger = logging.getLogger(__name__)
 
 # Configuration from environment variables (for Koyeb)
 import os
-BOT_TOKENS = os.getenv("BOT_TOKENS", "").split(";")  # Format: "token1;token2;control_token"
-ADMIN_IDS = [int(id) for id in os.getenv("ADMIN_IDS", "").split(",") if id]
+BOT_TOKENS = os.getenv("BOT_TOKENS", "7982548340:AAHEfCDzWEKMb6h6EBdwNaG1VzSvIhrMk7I 7598643423:AAHCrjoGkofeT2ttx-n9y0I4iRkeWq9vU6Q").split(" ")  # Format: "token1;token2;control_token"
+ADMIN_IDS = [int(id) for id in os.getenv("ADMIN_IDS", "1114789110").split(",") if id]
 SPAM_INTERVAL = int(os.getenv("SPAM_INTERVAL", 3600))  # 1 hour default
 
 class BotManager:
