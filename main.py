@@ -1,61 +1,61 @@
+import os
 import asyncio
 import logging
 from pyrogram import Client, filters
 from pyrogram.errors import RPCError, FloodWait
 from datetime import datetime, timedelta
 
-# ✅ Bot credentials (HARDCODED)
+# ✅ Bot credentials (Environment Variables से लोड करें)
 BOTS_CONFIG = [
     {
         "name": "bot1",
-        "api_id": 26494161,
-        "api_hash": "55da841f877d16a3a806169f3c5153d3",
-        "bot_token": "7670198611:AAEwf0-xqEiBHocibNAXMRqz08TIVFWz8PM"
+        "api_id": int(os.getenv("BOT1_API_ID", "26494161")),
+        "api_hash": os.getenv("BOT1_API_HASH", "55da841f877d16a3a806169f3c5153d3"),
+        "bot_token": os.getenv("BOT1_TOKEN", "7670198611:AAEwf0-xqEiBHocibNAXMRqz08TIVFWz8PM")
     },
     {
         "name": "bot2",
-        "api_id": 24519654,
-        "api_hash": "1ccea9c29a420df6a6622383fbd83bcd",
-        "bot_token": "7982548340:AAHEfCDzWEKMb6h6EBdwNaG1VzSvIhrMk7I"
+        "api_id": int(os.getenv("BOT2_API_ID", "24519654")),
+        "api_hash": os.getenv("BOT2_API_HASH", "1ccea9c29a420df6a6622383fbd83bcd"),
+        "bot_token": os.getenv("BOT2_TOKEN", "7982548340:AAHEfCDzWEKMb6h6EBdwNaG1VzSvIhrMk7I")
     },
     {
         "name": "control_bot",
-        "api_id": 26494161,
-        "api_hash": "55da841f877d16a3a806169f3c5153d3",
-        "bot_token": "7785044097:AAHmF3GsTj49jfKqrjczS2xOTUQ52NPKlP0"
+        "api_id": int(os.getenv("CONTROL_API_ID", "26494161")),
+        "api_hash": os.getenv("CONTROL_API_HASH", "55da841f877d16a3a806169f3c5153d3"),
+        "bot_token": os.getenv("CONTROL_BOT_TOKEN", "7785044097:AAHmF3GsTj49jfKqrjczS2xOTUQ52NPKlP0")
     }
 ]
 
-# ✅ Channel IDs (username or numeric id allowed)
-RAW_CHAT_IDS = [
-    -1002246848988
-]
+# ✅ Channel IDs (Environment Variables से लोड करें)
+RAW_CHAT_IDS = [int(id) if id.lstrip('-').isdigit() else id.strip() 
+               for id in os.getenv("CHAT_IDS", "-1002246848988").split(",")]
 
-# ✅ Admin user IDs (for /spam_on, /spam_off)
-ADMIN_IDS = [1114789110]
+# ✅ Admin user IDs (Environment Variables से लोड करें)
+ADMIN_IDS = [int(id) for id in os.getenv("ADMIN_IDS", "1114789110").split(",") if id]
 
-# ✅ Settings
-SPAM_INTERVAL = 3600  # seconds
-AUTO_SPAM = True  # default on
+# ✅ General settings (Environment Variables से लोड करें)
+SPAM_INTERVAL = int(os.getenv("SPAM_INTERVAL", "3600"))  # seconds
+AUTO_SPAM = os.getenv("AUTO_SPAM", "True").lower() == "true"  # start with auto-spam on
 
-# ✅ Logging
+# ✅ Logging setup
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s"
+    format='%(asctime)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger("main")
-
 
 class BotManager:
     def __init__(self):
         self.auto_spam = AUTO_SPAM
         self.spam_interval = SPAM_INTERVAL
         self.last_spam_time = {}
-        self.active_bots = []
         self.admin_ids = ADMIN_IDS
+        self.active_bots = []
         self.resolved_chat_ids = []
 
     async def initialize_bots(self):
+        """सभी बॉट्स को इनिशियलाइज़ करें"""
         for config in BOTS_CONFIG:
             try:
                 bot = Client(
@@ -80,45 +80,59 @@ class BotManager:
                 logger.error(f"❌ Failed to start {config['name']}: {e}")
                 raise
 
-        # 🔁 Resolve chat IDs after bots are ready
-        await self.auto_resolve_chat_ids()
+        await self.resolve_chat_ids()
 
-    async def auto_resolve_chat_ids(self):
+    async def resolve_chat_ids(self):
+        """चैट आईडी को रिजॉल्व करें और पर्मिशन चेक करें"""
         self.resolved_chat_ids = []
-
-        resolver_bot = None
-        for bot in self.active_bots:
-            if "control" not in bot.name:
-                resolver_bot = bot
-                break
-
-        if not resolver_bot:
-            logger.error("❌ No worker bot available to resolve chat IDs")
+        if not self.active_bots:
             return
 
-        for raw in RAW_CHAT_IDS:
+        bot = self.active_bots[0]  # पहले बॉट का उपयोग करें
+        
+        for raw_id in RAW_CHAT_IDS:
             try:
-                chat = await resolver_bot.get_chat(raw)
+                # चैट जॉइन करने की कोशिश करें
+                try:
+                    await bot.join_chat(raw_id)
+                    logger.info(f"Joined chat: {raw_id}")
+                except Exception as join_error:
+                    logger.warning(f"Couldn't join chat {raw_id}: {join_error}")
+
+                # चैट डिटेल्स प्राप्त करें
+                chat = await bot.get_chat(raw_id)
+                
+                # पर्मिशन चेक करें
+                if hasattr(chat, 'permissions') and chat.permissions:
+                    if not chat.permissions.can_send_messages:
+                        logger.error(f"⚠️ No permission to send messages in {chat.title}")
+                        continue
+                
                 self.resolved_chat_ids.append(chat.id)
-                logger.info(f"🔗 Resolved: {chat.title or chat.username or chat.id}")
+                logger.info(f"✅ Resolved chat: {chat.title or chat.id} (ID: {chat.id})")
+
             except Exception as e:
-                logger.warning(f"⚠️ {resolver_bot.name} can't access {raw}: {e}")
+                logger.error(f"❌ Failed to resolve chat {raw_id}: {str(e)}")
 
     def _add_basic_handlers(self, bot):
+        """बेसिक कमांड हैंडलर्स जोड़ें"""
         @bot.on_message(filters.command("start"))
         async def start_handler(client, message):
-            await message.reply(f"👋 Hello! I am @{client.me.username}.")
+            await message.reply(f"👋 Hello! I am @{client.me.username}")
 
     def _add_control_handlers(self, bot):
+        """एडमिन कंट्रोल हैंडलर्स जोड़ें"""
         @bot.on_message(filters.command("spam_on") & filters.user(self.admin_ids))
         async def enable_spam(client, message):
             self.auto_spam = True
-            await message.reply("✅ Spam mode turned ON.")
+            await message.reply("✅ Spam mode turned ON")
+            logger.info("Spam mode enabled by admin")
 
         @bot.on_message(filters.command("spam_off") & filters.user(self.admin_ids))
         async def disable_spam(client, message):
             self.auto_spam = False
-            await message.reply("🛑 Spam mode turned OFF.")
+            await message.reply("🛑 Spam mode turned OFF")
+            logger.info("Spam mode disabled by admin")
 
     async def spam_channels(self):
         SPAM_MESSAGES = [
@@ -130,29 +144,36 @@ class BotManager:
         ]
 
         while True:
-            if self.auto_spam:
+            if self.auto_spam and self.resolved_chat_ids:
                 for bot in self.active_bots:
                     if "control" in bot.name:
                         continue
-
+                        
                     for chat_id in self.resolved_chat_ids:
-                        key = (bot.name, chat_id)
-                        last_time = self.last_spam_time.get(key, datetime.min)
-
-                        if (datetime.now() - last_time) > timedelta(seconds=self.spam_interval):
+                        try:
+                            # चैट में है या नहीं यह चेक करें
+                            try:
+                                await bot.get_chat(chat_id)
+                            except:
+                                logger.warning(f"Bot not in chat {chat_id}, trying to join...")
+                                await bot.join_chat(chat_id)
+                            
+                            # मैसेज भेजें
                             for msg in SPAM_MESSAGES:
                                 try:
                                     await bot.send_message(chat_id, msg)
-                                    await asyncio.sleep(5)
+                                    await asyncio.sleep(5)  # Anti-flood delay
                                 except FloodWait as e:
                                     logger.warning(f"⏳ Flood wait {e.value}s")
                                     await asyncio.sleep(e.value)
                                 except RPCError as e:
-                                    logger.warning(f"⚠️ {bot.name} → {chat_id}: {e}")
-                            self.last_spam_time[key] = datetime.now()
-
+                                    logger.error(f"⚠️ Error sending to {chat_id}: {e}")
+                                    break
+                                    
+                        except Exception as e:
+                            logger.error(f"❌ Error processing chat {chat_id}: {e}")
+                            
             await asyncio.sleep(60)
-
 
 async def main():
     manager = BotManager()
@@ -160,11 +181,10 @@ async def main():
     asyncio.create_task(manager.spam_channels())
     await asyncio.Event().wait()
 
-
 if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        print("🛑 Bot stopped by user.")
+        logger.info("🛑 Bot stopped by user")
     except Exception as e:
         logger.error(f"💥 Fatal error: {e}")
