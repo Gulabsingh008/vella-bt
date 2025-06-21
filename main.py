@@ -1,135 +1,151 @@
+import os
 import asyncio
 import logging
 from pyrogram import Client, filters
 from pyrogram.errors import RPCError
 from datetime import datetime, timedelta
 
-# Configure logging
+# लॉगिंग कॉन्फिगरेशन
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
 
-# Configuration from environment variables
-import os
-BOT_TOKENS = os.getenv("BOT_TOKENS", "").split(";")  # Format: "token1;token2;control_token"
-ADMIN_IDS = [int(id) for id in os.getenv("ADMIN_IDS", "").split(",") if id]
-SPAM_INTERVAL = int(os.getenv("SPAM_INTERVAL", 3600))  # 1 hour default
-
 class BotManager:
     def __init__(self):
+        # सभी बॉट्स के टोकन्स (अलग-अलग वेरिएबल्स से)
+        self.bot_tokens = {
+            "worker1": os.getenv("BOT1_TOKEN"),
+            "worker2": os.getenv("BOT2_TOKEN"),
+            "control": os.getenv("CONTROL_BOT_TOKEN")
+        }
+        
+        self.admin_ids = [int(id) for id in os.getenv("ADMIN_IDS", "").split(",") if id]
+        self.spam_interval = int(os.getenv("SPAM_INTERVAL", 3600))  # डिफॉल्ट 1 घंटा
         self.auto_spam = False
         self.last_spam_time = {}
-        self.bots = []
+        self.active_bots = []
+
+    def validate_tokens(self):
+        """सभी टोकन्स वैलिडेट करें"""
+        for name, token in self.bot_tokens.items():
+            if not token or ":" not in token:
+                logger.error(f"❌ अमान्य टोकन {name} के लिए")
+                return False
+        return True
 
     async def initialize_bots(self):
-        """Initialize all bot instances with better error handling"""
-        if not BOT_TOKENS:
-            logger.error("No BOT_TOKENS found in environment variables!")
-            return
-    
-        try:
-            control_token = BOT_TOKENS[-1]
-            worker_tokens = BOT_TOKENS[:-1]
-            
-            # Initialize worker bots
-            for i, token in enumerate(worker_tokens):
-                if not token or ":" not in token:
-                    logger.error(f"Invalid token format for bot {i}")
-                    continue
-                    
-                try:
-                    bot = Client(f"worker_{i}", bot_token=token)
-                    self._add_basic_handlers(bot)
-                    await bot.start()
-                    self.bots.append(bot)
-                    logger.info(f"Worker bot {i} started as @{bot.me.username}")
-                except Exception as e:
-                    logger.error(f"Failed to start worker bot {i}: {str(e)}")
+        """सभी बॉट्स को इनिशियलाइज़ करें"""
+        if not self.validate_tokens():
+            raise ValueError("एक या अधिक बॉट टोकन अमान्य हैं")
 
-            # Initialize control bot
+        # वर्कर बॉट्स स्टार्ट करें
+        for name, token in self.bot_tokens.items():
+            if name == "control":
+                continue
+                
             try:
-                control_bot = Client("control_bot", bot_token=control_token)
-                self._add_control_handlers(control_bot)
-                await control_bot.start()
-                self.bots.append(control_bot)
-                logger.info(f"Control bot {control_bot.me.username} started")
+                bot = Client(name, bot_token=token)
+                self._add_basic_handlers(bot)
+                await bot.start()
+                self.active_bots.append(bot)
+                logger.info(f"✅ {name} बॉट स्टार्ट हो गया @{bot.me.username}")
             except Exception as e:
-                logger.error(f"Failed to start control bot: {e}")
+                logger.error(f"❌ {name} बॉट स्टार्ट नहीं हो पाया: {str(e)}")
 
+        # कंट्रोल बॉट स्टार्ट करें
+        try:
+            control_bot = Client("control", bot_token=self.bot_tokens["control"])
+            self._add_control_handlers(control_bot)
+            await control_bot.start()
+            self.active_bots.append(control_bot)
+            logger.info(f"🎛 कंट्रोल बॉट स्टार्ट हो गया @{control_bot.me.username}")
         except Exception as e:
-            logger.error(f"Initialization failed: {e}")
+            logger.error(f"❌ कंट्रोल बॉट स्टार्ट नहीं हो पाया: {str(e)}")
 
     def _add_basic_handlers(self, bot):
-        """Add basic command handlers to worker bots"""
+        """बेसिक कमांड हैंडलर्स जोड़ें"""
         @bot.on_message(filters.command("start"))
         async def start_handler(client, message):
-            await message.reply(f"🤖 Hello! I'm {client.me.username}\n\n"
-                              f"Bot status: {'ACTIVE' if self.auto_spam else 'INACTIVE'}")
+            await message.reply(f"🤖 नमस्ते! मैं {client.me.username} बॉट हूँ\n"
+                              f"स्टेटस: {'सक्रिय' if self.auto_spam else 'निष्क्रिय'}")
 
     def _add_control_handlers(self, bot):
-        """Add admin control handlers"""
-        @bot.on_message(filters.command("spam_on") & filters.user(ADMIN_IDS))
+        """एडमिन कंट्रोल हैंडलर्स जोड़ें"""
+        @bot.on_message(filters.command("spam_on") & filters.user(self.admin_ids))
         async def turn_on(client, message):
             self.auto_spam = True
-            await message.reply("✅ Auto-spam activated")
-            logger.info("Spam mode activated by admin")
+            await message.reply("✅ स्पैम मोड चालू हो गया")
+            logger.info("स्पैम मोड चालू (एडमिन द्वारा)")
 
-        @bot.on_message(filters.command("spam_off") & filters.user(ADMIN_IDS))
+        @bot.on_message(filters.command("spam_off") & filters.user(self.admin_ids))
         async def turn_off(client, message):
             self.auto_spam = False
-            await message.reply("🛑 Auto-spam deactivated")
-            logger.info("Spam mode deactivated by admin")
+            await message.reply("🛑 स्पैम मोड बंद हो गया")
+            logger.info("स्पैम मोड बंद (एडमिन द्वारा)")
 
-        @bot.on_message(filters.command("bot_status") & filters.user(ADMIN_IDS))
+        @bot.on_message(filters.command("status") & filters.user(self.admin_ids))
         async def bot_status(client, message):
             status = []
-            for bot in self.bots:
+            for bot in self.active_bots:
                 try:
-                    status.append(f"• {bot.me.username}: {'🟢' if await bot.get_me() else '🔴'}")
+                    status.append(f"• @{bot.me.username}: {'🟢' if await bot.get_me() else '🔴'}")
                 except:
-                    status.append(f"• {bot.name}: 🔴 (Offline)")
+                    status.append(f"• {bot.name}: 🔴 (ऑफ़लाइन)")
             
             await message.reply(
-                f"🤖 Bot Status:\n" + "\n".join(status) +
-                f"\n\nSpam Mode: {'ON' if self.auto_spam else 'OFF'}"
+                "🤖 बॉट स्टेटस:\n" + "\n".join(status) +
+                f"\n\nस्पैम मोड: {'चालू' if self.auto_spam else 'बंद'}"
             )
 
     async def spam_channels(self):
-        """Controlled spamming function"""
+        """चैनल्स को मैसेज भेजने का मुख्य लूप"""
         while True:
             if self.auto_spam:
-                for bot in self.bots[:-1]:  # Skip control bot
+                for bot in self.active_bots[:-1]:  # कंट्रोल बॉट को छोड़कर
                     try:
                         async for dialog in bot.get_dialogs():
                             if dialog.chat.type in ["channel", "supergroup"]:
                                 chat_id = dialog.chat.id
-                                if (datetime.now() - self.last_spam_time.get(chat_id, datetime.min)) > timedelta(seconds=SPAM_INTERVAL):
+                                last_time = self.last_spam_time.get(chat_id, datetime.min)
+                                
+                                if (datetime.now() - last_time) > timedelta(seconds=self.spam_interval):
                                     try:
                                         await bot.send_message(
                                             chat_id,
-                                            "📢 Join our channel for updates!\n"
+                                            "📢 हमारे चैनल से जुड़ें!\n"
                                             "👉 @example_channel"
                                         )
                                         self.last_spam_time[chat_id] = datetime.now()
-                                        logger.info(f"Sent message to {chat_id} via {bot.me.username}")
+                                        logger.info(f"{bot.me.username} ने {chat_id} को मैसेज भेजा")
                                     except RPCError as e:
-                                        logger.warning(f"Failed to send to {chat_id}: {e}")
+                                        logger.warning(f"मैसेज भेजने में असफल: {e}")
                     except Exception as e:
-                        logger.error(f"Error in spam loop: {e}")
-            await asyncio.sleep(60)
+                        logger.error(f"स्पैम लूप में त्रुटि: {e}")
+            
+            await asyncio.sleep(60)  # हर मिनट चेक करें
 
 async def main():
     manager = BotManager()
     await manager.initialize_bots()
+    
+    # स्पैम टास्क बैकग्राउंड में शुरू करें
     asyncio.create_task(manager.spam_channels())
+    
+    # बॉट को रनिंग रखें
     await asyncio.Event().wait()
 
 if __name__ == "__main__":
     try:
+        # शुरुआत में लोड किए गए वेरिएबल्स चेक करें (डीबगिंग के लिए)
+        logger.info("बॉट शुरू हो रहा है...")
+        logger.info(f"BOT1_TOKEN: {'मौजूद' if os.getenv('BOT1_TOKEN') else 'नहीं मिला'}")
+        logger.info(f"BOT2_TOKEN: {'मौजूद' if os.getenv('BOT2_TOKEN') else 'नहीं मिला'}")
+        logger.info(f"CONTROL_BOT_TOKEN: {'मौजूद' if os.getenv('CONTROL_BOT_TOKEN') else 'नहीं मिला'}")
+        
         asyncio.run(main())
     except KeyboardInterrupt:
-        logger.info("Bot stopped by user")
+        logger.info("बॉट बंद किया जा रहा है...")
     except Exception as e:
-        logger.error(f"Fatal error: {e}")
+        logger.error(f"गंभीर त्रुटि: {str(e)}")
