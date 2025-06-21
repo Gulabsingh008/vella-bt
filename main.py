@@ -16,21 +16,18 @@ BOTS_CONFIG = [
         "name": "bot2",
         "api_id": 24519654,
         "api_hash": "1ccea9c29a420df6a6622383fbd83bcd",
-        "bot_token": "7788977795:AAHG0npLZU7PHehHkL8XToL5K83KcadzFAY"
+        "bot_token": "7982548340:AAHEfCDzWEKMb6h6EBdwNaG1VzSvIhrMk7I"
     },
     {
         "name": "control_bot",
         "api_id": 26494161,
         "api_hash": "55da841f877d16a3a806169f3c5153d3",
-        "bot_token": "7670198611:AAEwf0-xqEiBHocibNAXMRqz08TIVFWz8PM"
+        "bot_token": "7785044097:AAHmF3GsTj49jfKqrjczS2xOTUQ52NPKlP0"
     }
 ]
 
 # ✅ Channel IDs (replace with your actual -100 IDs)
-TARGET_CHAT_IDS = [
-    -1002246848988,
-    -1002246848988
-]
+TARGET_CHAT_IDS = [-1002246848988]
 
 # ✅ Admin user IDs (who can control spam via /spam_on or /spam_off)
 ADMIN_IDS = [1114789110]
