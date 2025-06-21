@@ -14,6 +14,9 @@ logger = logging.getLogger(__name__)
 # Configuration from environment variables (for Koyeb)
 import os
 BOT_TOKENS = os.getenv("BOT_TOKENS", "").split(";")  # Format: "token1;token2;control_token"
+if not all(BOT_TOKENS) or len(BOT_TOKENS) < 2:
+    logger.error("Invalid BOT_TOKENS configuration!")
+    exit(1)
 ADMIN_IDS = [int(id) for id in os.getenv("ADMIN_IDS", "1114789110").split(",") if id]
 SPAM_INTERVAL = int(os.getenv("SPAM_INTERVAL", 3600))  # 1 hour default
 
@@ -26,21 +29,29 @@ class BotManager:
         if not BOT_TOKENS:
             raise ValueError("No bot tokens provided in environment variables")
 
-    async def initialize_bots(self):
-        """Initialize all bot instances"""
-        control_token = BOT_TOKENS[-1]
-        worker_tokens = BOT_TOKENS[:-1]
-        
-        # Initialize worker bots
-        for i, token in enumerate(worker_tokens):
-            try:
-                bot = Client(f"worker_{i}", bot_token=token)
-                self._add_basic_handlers(bot)
-                await bot.start()
-                self.bots.append(bot)
-                logger.info(f"Worker bot {bot.me.username} started")
-            except Exception as e:
-                logger.error(f"Failed to start worker bot {i}: {e}")
+        async def initialize_bots(self):
+        """Initialize all bot instances with better error handling"""
+        if not BOT_TOKENS:
+            logger.error("No BOT_TOKENS found in environment variables!")
+            return
+    
+        try:
+            control_token = BOT_TOKENS[-1]
+            worker_tokens = BOT_TOKENS[:-1]
+            
+            for i, token in enumerate(worker_tokens):
+                if not token or ":" not in token:
+                    logger.error(f"Invalid token format for bot {i}")
+                    continue
+                    
+                try:
+                    bot = Client(f"worker_{i}", bot_token=token)
+                    self._add_basic_handlers(bot)
+                    await bot.start()
+                    self.bots.append(bot)
+                    logger.info(f"Worker bot {i} started as @{bot.me.username}")
+                except Exception as e:
+                    logger.error(f"Failed to start worker bot {i}: {str(e)}")
 
         # Initialize control bot
         try:
