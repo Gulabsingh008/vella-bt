@@ -20,9 +20,9 @@ class BotManager:
     def __init__(self):
         # सभी बॉट्स के टोकन्स (अलग-अलग वेरिएबल्स से)
         self.bot_tokens = {
-            "worker1": "7785044097:AAHmF3GsTj49jfKqrjczS2xOTUQ52NPKlP0",
-            "worker2": "7670198611:AAEwf0-xqEiBHocibNAXMRqz08TIVFWz8PM",
-            "control": "7785044097:AAHmF3GsTj49jfKqrjczS2xOTUQ52NPKlP0"
+            "worker1": "BOT1_TOKEN",
+            "worker2": "BOT2_TOKEN",
+            "control": "CONTROL_BOT_TOKEN"
         }
         
         self.admin_ids = [int(id) for id in os.getenv("ADMIN_IDS", "").split(",") if id]
