@@ -10,19 +10,19 @@ BOTS_CONFIG = [
         "name": "bot1",
         "api_id": 26494161,
         "api_hash": "55da841f877d16a3a806169f3c5153d3",
-        "bot_token": "7785044097:AAHmF3GsTj49jfKqrjczS2xOTUQ52NPKlP0"
+        "bot_token": "7670198611:AAEwf0-xqEiBHocibNAXMRqz08TIVFWz8PM"
     },
     {
         "name": "bot2",
         "api_id": 24519654,
         "api_hash": "1ccea9c29a420df6a6622383fbd83bcd",
-        "bot_token": "7982548340:AAHEfCDzWEKMb6h6EBdwNaG1VzSvIhrMk7I"
+        "bot_token": "7788977795:AAHG0npLZU7PHehHkL8XToL5K83KcadzFAY"
     },
     {
         "name": "control_bot",
         "api_id": 26494161,
         "api_hash": "55da841f877d16a3a806169f3c5153d3",
-        "bot_token": "7785044097:AAHmF3GsTj49jfKqrjczS2xOTUQ52NPKlP0"
+        "bot_token": "7670198611:AAEwf0-xqEiBHocibNAXMRqz08TIVFWz8PM"
     }
 ]
 
