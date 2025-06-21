@@ -4,7 +4,7 @@ from pyrogram import Client, filters
 from pyrogram.errors import RPCError
 from datetime import datetime, timedelta
 
-# ✅ सभी बॉट्स के टोकन और API क्रेडेंशियल्स (hardcoded)
+# ✅ Bot credentials (HARDCODED)
 BOTS_CONFIG = [
     {
         "name": "bot1",
@@ -20,31 +20,31 @@ BOTS_CONFIG = [
     },
     {
         "name": "control_bot",
-        "api_id": 24519654,
-        "api_hash": "1ccea9c29a420df6a6622383fbd83bcd",
-        "bot_token": "7982548340:AAHEfCDzWEKMb6h6EBdwNaG1VzSvIhrMk7I"
+        "api_id": 26494161,
+        "api_hash": "55da841f877d16a3a806169f3c5153d3",
+        "bot_token": "7785044097:AAHmF3GsTj49jfKqrjczS2xOTUQ52NPKlP0"
     }
 ]
 
-# ✅ एडमिन IDs जो control commands चला सकते हैं
-ADMIN_IDS = [1114789110, 7170452349]
-
-# ✅ चैनल IDs जहाँ स्पैम भेजना है (manually added)
+# ✅ Channel IDs (replace with your actual -100 IDs)
 TARGET_CHAT_IDS = [
     -1002246848988,
     -1002246848988
 ]
 
-# ✅ बाकी config
-SPAM_INTERVAL = 3600  # seconds (1 hour default)
-AUTO_SPAM = True  # चालू करते ही स्पैम शुरू हो जाए
+# ✅ Admin user IDs (who can control spam via /spam_on or /spam_off)
+ADMIN_IDS = [1114789110]
 
-# ✅ Log config
+# ✅ General settings
+SPAM_INTERVAL = 3600  # seconds
+AUTO_SPAM = True  # start with auto-spam on
+
+# ✅ Logging setup
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    format='%(asctime)s - %(levelname)s - %(message)s'
 )
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("main")
 
 class BotManager:
     def __init__(self):
@@ -72,8 +72,8 @@ class BotManager:
 
                 await bot.start()
                 me = await bot.get_me()
-                logger.info(f"✅ {config['name']} started as @{me.username}")
-                await bot.send_message("me", f"🤖 @{me.username} started successfully")
+                logger.info(f"✅ Started {config['name']} as @{me.username}")
+                await bot.send_message("me", f"🤖 @{me.username} started successfully.")
                 self.active_bots.append(bot)
 
             except Exception as e:
@@ -83,20 +83,18 @@ class BotManager:
     def _add_basic_handlers(self, bot):
         @bot.on_message(filters.command("start"))
         async def start_handler(client, message):
-            await message.reply(f"🤖 Hello! I am {client.me.username}")
+            await message.reply(f"👋 Hello! I am @{client.me.username}.")
 
     def _add_control_handlers(self, bot):
         @bot.on_message(filters.command("spam_on") & filters.user(self.admin_ids))
-        async def spam_on(client, message):
+        async def enable_spam(client, message):
             self.auto_spam = True
-            await message.reply("✅ Auto-spam mode turned ON")
-            logger.info("🔔 Spam mode ON")
+            await message.reply("✅ Spam mode turned ON.")
 
         @bot.on_message(filters.command("spam_off") & filters.user(self.admin_ids))
-        async def spam_off(client, message):
+        async def disable_spam(client, message):
             self.auto_spam = False
-            await message.reply("🛑 Auto-spam mode turned OFF")
-            logger.info("🚫 Spam mode OFF")
+            await message.reply("🛑 Spam mode turned OFF.")
 
     async def spam_channels(self):
         SPAM_MESSAGES = [
@@ -122,7 +120,7 @@ class BotManager:
                                     await bot.send_message(chat_id, msg)
                                     await asyncio.sleep(5)
                                 except RPCError as e:
-                                    logger.warning(f"{bot.name} to {chat_id}: {e}")
+                                    logger.warning(f"⚠️ {bot.name} → {chat_id}: {e}")
                             self.last_spam_time[key] = datetime.now()
             await asyncio.sleep(60)
 
@@ -136,6 +134,6 @@ if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        print("🛑 Stopped by user")
+        print("🛑 Bot stopped by user.")
     except Exception as e:
         logger.error(f"💥 Fatal error: {e}")
