@@ -16,12 +16,10 @@ print("Actual BOT1_TOKEN:", repr(os.getenv("BOT1_TOKEN")))
 print("Actual BOT2_TOKEN:", repr(os.getenv("BOT2_TOKEN")))
 print("Actual CONTROL_BOT_TOKEN:", repr(os.getenv("CONTROL_BOT_TOKEN")))
 
-# main.py में शुरुआत में जोड़ें
-print("BOT1_TOKEN first 5 chars:", repr(os.getenv("BOT1_TOKEN")[:5]),
-print("BOT1_TOKEN last 5 chars:", repr(os.getenv("BOT1_TOKEN")[-5:]),
-# main.py में शुरुआत में जोड़ें
-print("BOT2_TOKEN first 5 chars:", repr(os.getenv("BOT2_TOKEN")[:5]),
-print("BOT2_TOKEN last 5 chars:", repr(os.getenv("BOT2_TOKEN")[-5:])
+print("BOT1_TOKEN first 5 chars:", repr(os.getenv("BOT1_TOKEN")[:5]))
+print("BOT1_TOKEN last 5 chars:", repr(os.getenv("BOT1_TOKEN")[-5:]))
+print("BOT2_TOKEN first 5 chars:", repr(os.getenv("BOT2_TOKEN")[:5]))
+print("BOT2_TOKEN last 5 chars:", repr(os.getenv("BOT2_TOKEN")[-5:]))
 
 
 
