@@ -23,7 +23,7 @@ BOTS_CONFIG = [
         "name": "control_bot",
         "api_id": int(os.getenv("CONTROL_API_ID", "26494161")),
         "api_hash": os.getenv("CONTROL_API_HASH", "55da841f877d16a3a806169f3c5153d3"),
-        "bot_token": os.getenv("CONTROL_BOT_TOKEN", "7785044097:AAHmF3GsTj49jfKqrjczS2xOTUQ52NPKlP0")
+        "bot_token": os.getenv("CONTROL_BOT_TOKEN", "7670198611:AAEwf0-xqEiBHocibNAXMRqz08TIVFWz8PM")
     }
 ]
 
