@@ -16,6 +16,15 @@ print("Actual BOT1_TOKEN:", repr(os.getenv("BOT1_TOKEN")))
 print("Actual BOT2_TOKEN:", repr(os.getenv("BOT2_TOKEN")))
 print("Actual CONTROL_BOT_TOKEN:", repr(os.getenv("CONTROL_BOT_TOKEN")))
 
+# main.py में शुरुआत में जोड़ें
+print("BOT1_TOKEN first 5 chars:", repr(os.getenv("BOT1_TOKEN")[:5]),
+print("BOT1_TOKEN last 5 chars:", repr(os.getenv("BOT1_TOKEN")[-5:]),
+# main.py में शुरुआत में जोड़ें
+print("BOT2_TOKEN first 5 chars:", repr(os.getenv("BOT2_TOKEN")[:5]),
+print("BOT2_TOKEN last 5 chars:", repr(os.getenv("BOT2_TOKEN")[-5:])
+
+
+
 class BotManager:
     def __init__(self):
         # सभी बॉट्स के टोकन्स (अलग-अलग वेरिएबल्स से)
@@ -32,13 +41,22 @@ class BotManager:
         self.active_bots = []
 
     def validate_tokens(self):
-        """सभी टोकन्स को स्ट्रिप करके वैलिडेट करें"""
+    """सभी टोकन्स को सख्ती से वैलिडेट करें"""
         for name, token in self.bot_tokens.items():
-            token = token.strip()  # अतिरिक्त स्पेस हटाएं
-            if not token or ":" not in token:
-                logger.error(f"टोकन {name} अमान्य है! कृपया चेक करें")
+            # टोकन को साफ करें
+            cleaned_token = token.strip()
+            
+            # टोकन फॉर्मेट चेक करें (19:35... जैसा पैटर्न)
+            if (not cleaned_token or 
+                len(cleaned_token.split(':')) != 2 or 
+                not cleaned_token.split(':')[0].isdigit() or 
+                not cleaned_token.split(':')[1].startswith('AA')):
+                
+                logger.error(f"अमान्य टोकन {name}: {repr(token)}")
+                logger.error(f"साफ किया गया टोकन: {repr(cleaned_token)}")
                 return False
-            self.bot_tokens[name] = token  # साफ किया हुआ टोकन सेव करें
+                
+            self.bot_tokens[name] = cleaned_token
         return True
 
     async def initialize_bots(self):
