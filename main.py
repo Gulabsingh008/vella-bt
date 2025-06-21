@@ -8,31 +8,31 @@ from datetime import datetime, timedelta
 BOTS_CONFIG = [
     {
         "name": "bot1",
-        "api_id": 1111111,
-        "api_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-        "bot_token": "111111:ABC-bot1token"
+        "api_id": 26494161,
+        "api_hash": "55da841f877d16a3a806169f3c5153d3",
+        "bot_token": "7785044097:AAHmF3GsTj49jfKqrjczS2xOTUQ52NPKlP0"
     },
     {
         "name": "bot2",
-        "api_id": 2222222,
-        "api_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-        "bot_token": "222222:DEF-bot2token"
+        "api_id": 24519654,
+        "api_hash": "1ccea9c29a420df6a6622383fbd83bcd",
+        "bot_token": "7982548340:AAHEfCDzWEKMb6h6EBdwNaG1VzSvIhrMk7I"
     },
     {
         "name": "control_bot",
-        "api_id": 3333333,
-        "api_hash": "cccccccccccccccccccccccccccccccc",
-        "bot_token": "333333:GHI-controlbottoken"
+        "api_id": 24519654,
+        "api_hash": "1ccea9c29a420df6a6622383fbd83bcd",
+        "bot_token": "7982548340:AAHEfCDzWEKMb6h6EBdwNaG1VzSvIhrMk7I"
     }
 ]
 
 # ✅ एडमिन IDs जो control commands चला सकते हैं
-ADMIN_IDS = [123456789, 987654321]
+ADMIN_IDS = [1114789110, 7170452349]
 
 # ✅ चैनल IDs जहाँ स्पैम भेजना है (manually added)
 TARGET_CHAT_IDS = [
-    -1001234567890,
-    -1009876543210
+    -1002246848988,
+    -1002246848988
 ]
 
 # ✅ बाकी config
