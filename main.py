@@ -27,7 +27,7 @@ BOTS_CONFIG = [
 ]
 
 # ✅ Channel IDs (can be numeric or usernames)
-RAW_CHAT_IDS = [-1002246848988]  # You can also put "@channelusername"
+RAW_CHAT_IDS = [2246848988]  # You can also put "@channelusername"
 
 # ✅ Admin user IDs (who can control spam via /spam_on or /spam_off)
 ADMIN_IDS = [1114789110]
