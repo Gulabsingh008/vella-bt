@@ -26,20 +26,22 @@ BOTS_CONFIG = [
     }
 ]
 
-# ✅ Channel IDs (can be numeric or usernames)
-RAW_CHAT_IDS = [2246848988]  # You can also put "@channelusername"
+# ✅ Channel IDs (username or numeric id allowed)
+RAW_CHAT_IDS = [
+    -1002246848988
+]
 
-# ✅ Admin user IDs (who can control spam via /spam_on or /spam_off)
+# ✅ Admin user IDs (for /spam_on, /spam_off)
 ADMIN_IDS = [1114789110]
 
-# ✅ General settings
+# ✅ Settings
 SPAM_INTERVAL = 3600  # seconds
-AUTO_SPAM = True  # start with auto-spam on
+AUTO_SPAM = True  # default on
 
-# ✅ Logging setup
+# ✅ Logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
+    format="%(asctime)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger("main")
 
@@ -49,8 +51,8 @@ class BotManager:
         self.auto_spam = AUTO_SPAM
         self.spam_interval = SPAM_INTERVAL
         self.last_spam_time = {}
-        self.admin_ids = ADMIN_IDS
         self.active_bots = []
+        self.admin_ids = ADMIN_IDS
         self.resolved_chat_ids = []
 
     async def initialize_bots(self):
@@ -78,23 +80,29 @@ class BotManager:
                 logger.error(f"❌ Failed to start {config['name']}: {e}")
                 raise
 
-        # 🔁 Resolve chat IDs after all bots have started
+        # 🔁 Resolve chat IDs after bots are ready
         await self.auto_resolve_chat_ids()
 
     async def auto_resolve_chat_ids(self):
-        """Auto resolve all chat IDs and store them."""
         self.resolved_chat_ids = []
+
+        resolver_bot = None
         for bot in self.active_bots:
-            if "control" in bot.name:
-                continue
-            for raw_id in RAW_CHAT_IDS:
-                try:
-                    chat = await bot.get_chat(raw_id)
-                    self.resolved_chat_ids.append(chat.id)
-                    logger.info(f"🔗 Resolved chat: {chat.title or chat.id}")
-                except Exception as e:
-                    logger.warning(f"⚠️ Could not resolve chat ID {raw_id}: {e}")
-            break  # Resolve only once using one bot
+            if "control" not in bot.name:
+                resolver_bot = bot
+                break
+
+        if not resolver_bot:
+            logger.error("❌ No worker bot available to resolve chat IDs")
+            return
+
+        for raw in RAW_CHAT_IDS:
+            try:
+                chat = await resolver_bot.get_chat(raw)
+                self.resolved_chat_ids.append(chat.id)
+                logger.info(f"🔗 Resolved: {chat.title or chat.username or chat.id}")
+            except Exception as e:
+                logger.warning(f"⚠️ {resolver_bot.name} can't access {raw}: {e}")
 
     def _add_basic_handlers(self, bot):
         @bot.on_message(filters.command("start"))
@@ -126,6 +134,7 @@ class BotManager:
                 for bot in self.active_bots:
                     if "control" in bot.name:
                         continue
+
                     for chat_id in self.resolved_chat_ids:
                         key = (bot.name, chat_id)
                         last_time = self.last_spam_time.get(key, datetime.min)
@@ -136,11 +145,12 @@ class BotManager:
                                     await bot.send_message(chat_id, msg)
                                     await asyncio.sleep(5)
                                 except FloodWait as e:
-                                    logger.warning(f"⏳ Flood wait {e.value}s: sleeping")
+                                    logger.warning(f"⏳ Flood wait {e.value}s")
                                     await asyncio.sleep(e.value)
                                 except RPCError as e:
                                     logger.warning(f"⚠️ {bot.name} → {chat_id}: {e}")
                             self.last_spam_time[key] = datetime.now()
+
             await asyncio.sleep(60)
 
 
