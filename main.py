@@ -8,7 +8,7 @@ BOTS_CONFIG = [
         "name": "bot1",
         "api_id": 26494161,
         "api_hash": "55da841f877d16a3a806169f3c5153d3",
-        "bot_token": "7670198611:AAEwf0-xqEiBHocibNAXMRqz08TIVFWz8PM",
+        "bot_token": "7275647105:AAHbGyX9zD-2Fo2835r9Wb87o5jpn0TsID0",
         "log_channel": -1002246848988
     },
     {
