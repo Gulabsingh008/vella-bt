@@ -33,23 +33,18 @@ async def start_bot(config):
 
     @app.on_message(filters.command("start"))
     async def handle_start(client: Client, message: Message):
+        # Reply to user
         await message.reply_text(f"👋 Hello! I am @{(await client.get_me()).username}")
 
+        # Log message to log channel
         log_text = f"👤 User: {message.from_user.mention}\n🆔 ID: {message.from_user.id}\n📥 Started the bot."
         try:
             await client.send_message(config["log_channel"], log_text)
         except Exception as e:
-            print(f"❌ Failed to send log from {config['name']}: {e}")
+            print(f"❌ Failed to send log: {e}")
 
     await app.start()
     print(f"✅ Started bot: {config['name']}")
-
-    try:
-        await app.send_message(config["log_channel"], "🤖 Bot Started! Stay tuned for updates.")
-        print(f"📤 Log sent to channel: {config['log_channel']} (from {config['name']})")
-    except Exception as e:
-        print(f"⚠️ Failed to send startup log from {config['name']}: {e}")
-
     clients.append(app)
 
 async def main():
