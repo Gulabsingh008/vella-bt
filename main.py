@@ -73,7 +73,7 @@ class BotManager:
                 await bot.start()
                 me = await bot.get_me()
                 logger.info(f"✅ Started {config['name']} as @{me.username}")
-                await bot.send_message("me", f"🤖 @{me.username} started successfully.")
+                #await bot.send_message("me", f"🤖 @{me.username} started successfully.")
                 self.active_bots.append(bot)
 
             except Exception as e:
