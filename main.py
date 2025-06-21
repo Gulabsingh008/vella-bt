@@ -2,145 +2,177 @@ import os
 import asyncio
 import logging
 from pyrogram import Client, filters
-from pyrogram.errors import RPCError, FloodWait
+from pyrogram.errors import RPCError, FloodWait, PeerIdInvalid
+from pyrogram.types import ChatPermissions
 from datetime import datetime, timedelta
 
-# ✅ Bot credentials (Environment Variables से लोड करें)
-BOTS_CONFIG = [
-    {
-        "name": "bot1",
-        "api_id": int(os.getenv("BOT1_API_ID", "26494161")),
-        "api_hash": os.getenv("BOT1_API_HASH", "55da841f877d16a3a806169f3c5153d3"),
-        "bot_token": os.getenv("BOT1_TOKEN", "7670198611:AAEwf0-xqEiBHocibNAXMRqz08TIVFWz8PM")
-    },
-    {
-        "name": "bot2",
-        "api_id": int(os.getenv("BOT2_API_ID", "24519654")),
-        "api_hash": os.getenv("BOT2_API_HASH", "1ccea9c29a420df6a6622383fbd83bcd"),
-        "bot_token": os.getenv("BOT2_TOKEN", "7982548340:AAHEfCDzWEKMb6h6EBdwNaG1VzSvIhrMk7I")
-    },
-    {
-        "name": "control_bot",
-        "api_id": int(os.getenv("CONTROL_API_ID", "26494161")),
-        "api_hash": os.getenv("CONTROL_API_HASH", "55da841f877d16a3a806169f3c5153d3"),
-        "bot_token": os.getenv("CONTROL_BOT_TOKEN", "7670198611:AAEwf0-xqEiBHocibNAXMRqz08TIVFWz8PM")
-    }
-]
-
-# ✅ Channel IDs (Environment Variables से लोड करें)
-RAW_CHAT_IDS = [int(id) if id.lstrip('-').isdigit() else id.strip() 
-               for id in os.getenv("CHAT_IDS", "-1002246848988").split(",")]
-
-# ✅ Admin user IDs (Environment Variables से लोड करें)
-ADMIN_IDS = [int(id) for id in os.getenv("ADMIN_IDS", "1114789110").split(",") if id]
-
-# ✅ General settings (Environment Variables से लोड करें)
-SPAM_INTERVAL = int(os.getenv("SPAM_INTERVAL", "3600"))  # seconds
-AUTO_SPAM = os.getenv("AUTO_SPAM", "True").lower() == "true"  # start with auto-spam on
-
-# ✅ Logging setup
+# Configure logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
-logger = logging.getLogger("main")
+logger = logging.getLogger(__name__)
+
+# Load configuration from environment variables
+def get_config():
+    return {
+        "bots": [
+            {
+                "name": "bot1",
+                "api_id": int(os.getenv("BOT1_API_ID", "26494161")),
+                "api_hash": os.getenv("BOT1_API_HASH", "55da841f877d16a3a806169f3c5153d3"),
+                "bot_token": os.getenv("BOT1_TOKEN", "7670198611:AAEwf0-xqEiBHocibNAXMRqz08TIVFWz8PM")
+            },
+            {
+                "name": "bot2",
+                "api_id": int(os.getenv("BOT2_API_ID", "24519654")),
+                "api_hash": os.getenv("BOT2_API_HASH", "1ccea9c29a420df6a6622383fbd83bcd"),
+                "bot_token": os.getenv("BOT2_TOKEN", "7982548340:AAHEfCDzWEKMb6h6EBdwNaG1VzSvIhrMk7I")
+            },
+            {
+                "name": "control_bot",
+                "api_id": int(os.getenv("CONTROL_API_ID", "26494161")),
+                "api_hash": os.getenv("CONTROL_API_HASH", "55da841f877d16a3a806169f3c5153d3"),
+                "bot_token": os.getenv("CONTROL_BOT_TOKEN", "7785044097:AAHmF3GsTj49jfKqrjczS2xOTUQ52NPKlP0")
+            }
+        ],
+        "chat_ids": [int(id) if id.lstrip('-').isdigit() else id.strip() 
+                    for id in os.getenv("CHAT_IDS", "-1002246848988").split(",")],
+        "admin_ids": [int(id) for id in os.getenv("ADMIN_IDS", "1114789110").split(",") if id],
+        "spam_interval": int(os.getenv("SPAM_INTERVAL", "3600")),
+        "auto_spam": os.getenv("AUTO_SPAM", "True").lower() == "true",
+        "chat_invite_link": os.getenv("CHAT_INVITE_LINK", "")
+    }
 
 class BotManager:
-    def __init__(self):
-        self.auto_spam = AUTO_SPAM
-        self.spam_interval = SPAM_INTERVAL
+    def __init__(self, config):
+        self.config = config
+        self.auto_spam = config["auto_spam"]
+        self.spam_interval = config["spam_interval"]
         self.last_spam_time = {}
-        self.admin_ids = ADMIN_IDS
+        self.admin_ids = config["admin_ids"]
         self.active_bots = []
         self.resolved_chat_ids = []
 
     async def initialize_bots(self):
-        """सभी बॉट्स को इनिशियलाइज़ करें"""
-        for config in BOTS_CONFIG:
+        """Initialize all bots with proper error handling"""
+        for bot_config in self.config["bots"]:
             try:
                 bot = Client(
-                    name=config["name"],
-                    api_id=config["api_id"],
-                    api_hash=config["api_hash"],
-                    bot_token=config["bot_token"],
+                    name=bot_config["name"],
+                    api_id=bot_config["api_id"],
+                    api_hash=bot_config["api_hash"],
+                    bot_token=bot_config["bot_token"],
                     in_memory=True
                 )
 
-                if config["name"] == "control_bot":
+                if bot_config["name"] == "control_bot":
                     self._add_control_handlers(bot)
                 else:
                     self._add_basic_handlers(bot)
 
                 await bot.start()
                 me = await bot.get_me()
-                logger.info(f"✅ Started {config['name']} as @{me.username}")
+                logger.info(f"✅ Started {bot_config['name']} as @{me.username}")
                 self.active_bots.append(bot)
 
+                # Join chat via invite link if provided
+                if self.config["chat_invite_link"]:
+                    try:
+                        await bot.join_chat(self.config["chat_invite_link"])
+                        logger.info(f"Joined chat using invite link")
+                    except Exception as e:
+                        logger.warning(f"Failed to join via invite link: {e}")
+
             except Exception as e:
-                logger.error(f"❌ Failed to start {config['name']}: {e}")
+                logger.error(f"❌ Failed to start {bot_config['name']}: {e}")
                 raise
 
-        await self.resolve_chat_ids()
+        await self._verify_chat_access()
 
-    async def resolve_chat_ids(self):
-        """चैट आईडी को रिजॉल्व करें और पर्मिशन चेक करें"""
+    async def _verify_chat_access(self):
+        """Verify and resolve all chat IDs with proper permissions"""
         self.resolved_chat_ids = []
         if not self.active_bots:
             return
 
-        bot = self.active_bots[0]  # पहले बॉट का उपयोग करें
+        bot = self.active_bots[0]  # Use first bot for verification
         
-        for raw_id in RAW_CHAT_IDS:
+        for raw_id in self.config["chat_ids"]:
             try:
-                # चैट जॉइन करने की कोशिश करें
+                # Try to get chat details
                 try:
-                    await bot.join_chat(raw_id)
-                    logger.info(f"Joined chat: {raw_id}")
-                except Exception as join_error:
-                    logger.warning(f"Couldn't join chat {raw_id}: {join_error}")
+                    chat = await bot.get_chat(raw_id)
+                except PeerIdInvalid:
+                    logger.error(f"Chat ID {raw_id} is invalid")
+                    continue
+                except Exception as e:
+                    logger.warning(f"Failed to get chat {raw_id}: {e}")
+                    continue
 
-                # चैट डिटेल्स प्राप्त करें
-                chat = await bot.get_chat(raw_id)
-                
-                # पर्मिशन चेक करें
-                if hasattr(chat, 'permissions') and chat.permissions:
-                    if not chat.permissions.can_send_messages:
-                        logger.error(f"⚠️ No permission to send messages in {chat.title}")
+                # Check permissions differently for channels and groups
+                if chat.type == "channel":
+                    try:
+                        member = await bot.get_chat_member(chat.id, "me")
+                        if not member.can_post_messages:
+                            raise Exception("Bot doesn't have post permission in channel")
+                    except Exception as e:
+                        logger.error(f"Permission check failed for channel {chat.id}: {e}")
                         continue
-                
+
+                elif chat.type in ["group", "supergroup"]:
+                    try:
+                        member = await bot.get_chat_member(chat.id, "me")
+                        if not member.can_send_messages:
+                            raise Exception("Bot doesn't have send messages permission")
+                    except Exception as e:
+                        logger.error(f"Permission check failed for group {chat.id}: {e}")
+                        continue
+
                 self.resolved_chat_ids.append(chat.id)
-                logger.info(f"✅ Resolved chat: {chat.title or chat.id} (ID: {chat.id})")
+                logger.info(f"✅ Verified access to chat: {chat.title or chat.id} (Type: {chat.type})")
 
             except Exception as e:
-                logger.error(f"❌ Failed to resolve chat {raw_id}: {str(e)}")
+                logger.error(f"❌ Final verification failed for {raw_id}: {e}")
 
     def _add_basic_handlers(self, bot):
-        """बेसिक कमांड हैंडलर्स जोड़ें"""
+        """Add basic command handlers"""
         @bot.on_message(filters.command("start"))
         async def start_handler(client, message):
-            await message.reply(f"👋 Hello! I am @{client.me.username}")
+            await message.reply(f"🤖 Hello! I'm @{client.me.username}\n"
+                              f"Status: {'ACTIVE' if self.auto_spam else 'INACTIVE'}")
 
     def _add_control_handlers(self, bot):
-        """एडमिन कंट्रोल हैंडलर्स जोड़ें"""
+        """Add admin control handlers"""
         @bot.on_message(filters.command("spam_on") & filters.user(self.admin_ids))
         async def enable_spam(client, message):
             self.auto_spam = True
-            await message.reply("✅ Spam mode turned ON")
+            await message.reply("✅ Spam mode activated")
             logger.info("Spam mode enabled by admin")
 
         @bot.on_message(filters.command("spam_off") & filters.user(self.admin_ids))
         async def disable_spam(client, message):
             self.auto_spam = False
-            await message.reply("🛑 Spam mode turned OFF")
+            await message.reply("🛑 Spam mode deactivated")
             logger.info("Spam mode disabled by admin")
 
-    async def spam_channels(self):
-        SPAM_MESSAGES = [
-            "🔥 Follow करो चैनल!",
-            "📢 आज की नई अपडेट देखें!",
-            "📡 Tech, Jobs और Fun एक जगह!",
-            "🎯 कंटेंट जो आपको Grow करे!",
-            "🧠 Daily Knowledge Boost लो!"
+        @bot.on_message(filters.command("status") & filters.user(self.admin_ids))
+        async def show_status(client, message):
+            status = [
+                f"• Bots Active: {len(self.active_bots)}",
+                f"• Chats Configured: {len(self.resolved_chat_ids)}",
+                f"• Spam Mode: {'ON' if self.auto_spam else 'OFF'}"
+            ]
+            await message.reply("\n".join(status))
+
+    async def run_spam_cycle(self):
+        """Main spam cycle with improved error handling"""
+        spam_messages = [
+            "🔥 Follow our channel!",
+            "📢 Check today's update!",
+            "📡 Tech, Jobs and Fun in one place!",
+            "🎯 Content that makes you Grow!",
+            "🧠 Get Daily Knowledge Boost!"
         ]
 
         while True:
@@ -148,18 +180,18 @@ class BotManager:
                 for bot in self.active_bots:
                     if "control" in bot.name:
                         continue
-                        
+
                     for chat_id in self.resolved_chat_ids:
                         try:
-                            # चैट में है या नहीं यह चेक करें
+                            # Verify chat access first
                             try:
-                                await bot.get_chat(chat_id)
-                            except:
-                                logger.warning(f"Bot not in chat {chat_id}, trying to join...")
-                                await bot.join_chat(chat_id)
-                            
-                            # मैसेज भेजें
-                            for msg in SPAM_MESSAGES:
+                                chat = await bot.get_chat(chat_id)
+                            except Exception as e:
+                                logger.warning(f"Re-checking chat access failed: {e}")
+                                continue
+
+                            # Send messages with delay
+                            for msg in spam_messages:
                                 try:
                                     await bot.send_message(chat_id, msg)
                                     await asyncio.sleep(5)  # Anti-flood delay
@@ -167,24 +199,29 @@ class BotManager:
                                     logger.warning(f"⏳ Flood wait {e.value}s")
                                     await asyncio.sleep(e.value)
                                 except RPCError as e:
-                                    logger.error(f"⚠️ Error sending to {chat_id}: {e}")
+                                    logger.error(f"⚠️ Error sending message: {e}")
                                     break
-                                    
+
+                            # Update last spam time
+                            self.last_spam_time[(bot.name, chat_id)] = datetime.now()
+
                         except Exception as e:
-                            logger.error(f"❌ Error processing chat {chat_id}: {e}")
-                            
-            await asyncio.sleep(60)
+                            logger.error(f"❌ Error in spam cycle: {e}")
+
+            await asyncio.sleep(60)  # Check every minute
 
 async def main():
-    manager = BotManager()
-    await manager.initialize_bots()
-    asyncio.create_task(manager.spam_channels())
-    await asyncio.Event().wait()
-
-if __name__ == "__main__":
+    config = get_config()
+    manager = BotManager(config)
+    
     try:
-        asyncio.run(main())
+        await manager.initialize_bots()
+        asyncio.create_task(manager.run_spam_cycle())
+        await asyncio.Event().wait()
     except KeyboardInterrupt:
         logger.info("🛑 Bot stopped by user")
     except Exception as e:
         logger.error(f"💥 Fatal error: {e}")
+
+if __name__ == "__main__":
+    asyncio.run(main())
