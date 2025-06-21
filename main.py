@@ -11,14 +11,18 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+# main.py की शुरुआत में ये डीबग लाइनें जोड़ें
+print("Actual BOT1_TOKEN:", repr(os.getenv("BOT1_TOKEN")))
+print("Actual BOT2_TOKEN:", repr(os.getenv("BOT2_TOKEN")))
+print("Actual CONTROL_BOT_TOKEN:", repr(os.getenv("CONTROL_BOT_TOKEN")))
 
 class BotManager:
     def __init__(self):
         # सभी बॉट्स के टोकन्स (अलग-अलग वेरिएबल्स से)
         self.bot_tokens = {
-            "worker1": os.getenv("BOT1_TOKEN"),
-            "worker2": os.getenv("BOT2_TOKEN"),
-            "control": os.getenv("CONTROL_BOT_TOKEN")
+            "worker1": "7785044097:AAHmF3GsTj49jfKqrjczS2xOTUQ52NPKlP0",
+            "worker2": "7670198611:AAEwf0-xqEiBHocibNAXMRqz08TIVFWz8PM",
+            "control": "7785044097:AAHmF3GsTj49jfKqrjczS2xOTUQ52NPKlP0"
         }
         
         self.admin_ids = [int(id) for id in os.getenv("ADMIN_IDS", "").split(",") if id]
@@ -28,11 +32,13 @@ class BotManager:
         self.active_bots = []
 
     def validate_tokens(self):
-        """सभी टोकन्स वैलिडेट करें"""
+        """सभी टोकन्स को स्ट्रिप करके वैलिडेट करें"""
         for name, token in self.bot_tokens.items():
+            token = token.strip()  # अतिरिक्त स्पेस हटाएं
             if not token or ":" not in token:
-                logger.error(f"❌ अमान्य टोकन {name} के लिए")
+                logger.error(f"टोकन {name} अमान्य है! कृपया चेक करें")
                 return False
+            self.bot_tokens[name] = token  # साफ किया हुआ टोकन सेव करें
         return True
 
     async def initialize_bots(self):
