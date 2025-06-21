@@ -38,7 +38,7 @@ def get_config():
         "chat_ids": [-1002246848988],
         "admin_ids": [1114789110],
         "spam_interval": 3600,
-        "auto_spam": True
+        "auto_spam": False
     }
 
 class BotManager:
