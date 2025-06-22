@@ -1,0 +1,25 @@
+services:
+  - name: telegram-bots
+    image: koyeb/app:telegram-bots
+    ports:
+      - port: 80
+        http_path: /
+    env:
+      - name: BOT1_API_ID
+        secret: true
+      - name: BOT1_API_HASH
+        secret: true
+      - name: BOT1_TOKEN
+        secret: true
+      - name: BOT1_LOG_CHANNEL
+        secret: true
+      - name: BOT2_API_ID
+        secret: true
+      - name: BOT2_API_HASH
+        secret: true
+      - name: BOT2_TOKEN
+        secret: true
+      - name: BOT2_LOG_CHANNEL
+        secret: true
+    regions:
+      - syd
