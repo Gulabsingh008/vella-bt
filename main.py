@@ -55,7 +55,11 @@ async def create_bot_client(config):
 
         me = await client.get_me()
         print(f"✅ {config['name']} started as @{me.username}")
-        return client
+        try:
+            await client.send_message(config['log_channel'], f"✅ Bot @{me.username} Started. Stay tuned!")
+        except Exception as e:
+            print(f"⚠️ Could not send startup log for {config['name']}: {e}")
+
         
     except Exception as e:
         print(f"❌ Failed to start {config['name']}: {e}")
