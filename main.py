@@ -79,12 +79,15 @@ async def create_bot_client(config):
                 "🗓 Year : 2025\n"
                 "🔊 Language : #Hindi\n"
                 "💿 Quality : Pre-DVD\n"
-                "📤 Upload : @AF_Cinemaa\n\n"
+                "📤 Uploaded By: @Jk_Files\n\n"
                 "Download\n\n"
-                "https://t.me/+W5V29zNGb2kwMjY1\n"
-                "https://t.me/+W5V29zNGb2kwMjY1\n"
-                "https://t.me/+W5V29zNGb2kwMjY1\n"
-                "https://t.me/+W5V29zNGb2kwMjY1"
+                "https://t.me/+I7AR5Pf-KHQ0MzU1\n"
+                "https://t.me/+I7AR5Pf-KHQ0MzU1\n"
+                "https://t.me/+I7AR5Pf-KHQ0MzU1\n"
+                "https://t.me/+I7AR5Pf-KHQ0MzU1\n\n"
+                "Also Join My New Backup Channel - \n"
+                "https://t.me/+gUEnTgRaqD80MGNl\n"
+                "https://t.me/+gUEnTgRaqD80MGNl\n"
             )
             await client.send_message(config['log_channel'], custom_msg)
             print(f"📩 Custom startup message sent for {config['name']}")
