@@ -49,8 +49,10 @@ async def create_bot_client(config):
             # 3rd message
             await asyncio.sleep(0.5)
             await event.reply("📥 You can start using the service now.")
-        
-            # Log to log_channel
+            
+            # ❌ Log channel message removed (as per your request)
+            # If needed later, you can re-enable below code
+            """
             log_msg = (
                 f"👤 User: {user_mention}\n"
                 f"🆔 ID: `{sender.id}`\n"
@@ -63,6 +65,8 @@ async def create_bot_client(config):
                 print(f"⚠️ Bot has no permission to write to log channel: {config['log_channel']}")
             except Exception as e:
                 print(f"❌ Log failed: {e}")
+            """
+
 
         me = await client.get_me()
         print(f"✅ {config['name']} started as @{me.username}")
