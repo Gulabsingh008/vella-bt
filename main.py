@@ -1,14 +1,15 @@
 import asyncio
-from pyrogram import Client, filters
-from pyrogram.types import Message
+from telethon import TelegramClient, events
+from telethon.tl.functions.messages import SendMessageRequest
+from telethon.errors import ChatWriteForbiddenError
 
-# Bot Configuration (Multiple Bots + Log Channels)
+# Multiple Bot Configuration
 BOTS_CONFIG = [
     {
         "name": "bot1",
         "api_id": 26494161,
         "api_hash": "55da841f877d16a3a806169f3c5153d3",
-        "bot_token": "7275647105:AAHbGyX9zD-2Fo2835r9Wb87o5jpn0TsID0",
+        "bot_token": "7670198611:AAEwf0-xqEiBHocibNAXMRqz08TIVFWz8PM",
         "log_channel": -1002246848988
     },
     {
@@ -23,45 +24,54 @@ BOTS_CONFIG = [
 clients = []
 
 async def start_bot(config):
-    app = Client(
-        name=config["name"],
-        api_id=config["api_id"],
-        api_hash=config["api_hash"],
-        bot_token=config["bot_token"],
-        in_memory=True
-    )
+    client = TelegramClient(
+        session=config['name'],
+        api_id=config['api_id'],
+        api_hash=config['api_hash']
+    ).start(bot_token=config['bot_token'])
 
-    @app.on_message(filters.command("start"))
-    async def handle_start(client: Client, message: Message):
-        user = message.from_user
-        bot_user = await client.get_me()
-        await message.reply_text(f"👋 Hello! I am @{bot_user.username}")
-        
-        log_text = f"👤 User: {user.mention}\n🆔 ID: {user.id}\n📥 Started the bot."
+    # Start message handler
+    @client.on(events.NewMessage(pattern="/start"))
+    async def handle_start(event):
+        sender = await event.get_sender()
+        user_mention = f"[{sender.first_name}](tg://user?id={sender.id})"
+        await event.reply(f"👋 Hello! I am @{(await client.get_me()).username}")
+
+        log_msg = (
+            f"👤 User: {user_mention}\n"
+            f"🆔 ID: `{sender.id}`\n"
+            f"📥 Started the bot."
+        )
+
         try:
-            await client.send_message(config["log_channel"], log_text)
+            await client.send_message(config['log_channel'], log_msg, parse_mode="md")
+        except ChatWriteForbiddenError:
+            print(f"⚠️ Bot has no permission to write to log channel: {config['log_channel']}")
         except Exception as e:
-            print(f"❌ Failed to send user log for {config['name']}: {e}")
+            print(f"❌ Log failed: {e}")
 
-    await app.start()
-    print(f"✅ Started bot: {config['name']}")
+    # Start the client
+    await client.start()
+    me = await client.get_me()
+    print(f"✅ {config['name']} started as @{me.username}")
+    clients.append(client)
 
-    # Send startup message to log channel
+    # Send "Bot Started" message to log channel
     try:
-        bot_user = await app.get_me()
-        await app.send_message(config["log_channel"], f"✅ @{bot_user.username} started. Log channel connected.")
-        print(f"📩 Log channel notified for {config['name']}")
+        await client.send_message(config['log_channel'], f"✅ Bot @{me.username} Started. Stay tuned!")
+        print(f"📩 Log channel message sent for {config['name']}")
     except Exception as e:
-        print(f"⚠️ Couldn't notify log channel for {config['name']}: {e}")
+        print(f"⚠️ Failed to send startup log for {config['name']}: {e}")
 
-    clients.append(app)
 
 async def main():
-    await asyncio.gather(*(start_bot(config) for config in BOTS_CONFIG))
+    await asyncio.gather(*(start_bot(cfg) for cfg in BOTS_CONFIG))
+    print("⚙️ All bots started. Waiting for events...")
     await asyncio.Event().wait()
+
 
 if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        print("🛑 Stopping all bots...")
+        print("🛑 Stopped.")
