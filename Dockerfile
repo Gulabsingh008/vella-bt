@@ -1,4 +1,4 @@
-FROM python:3.11-slim  # Changed from 3.9 to 3.11 (3.13 removed imghdr)
+FROM python:3.11-slim
 
 WORKDIR /app
 
