@@ -2,26 +2,24 @@ import asyncio
 import os
 from dotenv import load_dotenv
 from telethon import TelegramClient, events
-from telethon.errors import (ChatWriteForbiddenError, 
-                           AccessTokenExpiredError,
-                           RPCError)
+from telethon.errors import ChatWriteForbiddenError, AccessTokenExpiredError
 
 load_dotenv()
 
 BOTS_CONFIG = [
     {
         "name": "bot1",
-        "api_id": int(os.getenv("BOT1_API_ID", 0)),
-        "api_hash": os.getenv("BOT1_API_HASH", ""),
-        "bot_token": os.getenv("BOT1_TOKEN", ""),
-        "log_channel": int(os.getenv("BOT1_LOG_CHANNEL", 0))
+        "api_id": int(os.getenv("BOT1_API_ID")),
+        "api_hash": os.getenv("BOT1_API_HASH"),
+        "bot_token": os.getenv("BOT1_TOKEN"),
+        "log_channel": int(os.getenv("BOT1_LOG_CHANNEL"))
     },
     {
         "name": "bot2",
-        "api_id": int(os.getenv("BOT2_API_ID", 0)),
-        "api_hash": os.getenv("BOT2_API_HASH", ""),
-        "bot_token": os.getenv("BOT2_TOKEN", ""),
-        "log_channel": int(os.getenv("BOT2_LOG_CHANNEL", 0))
+        "api_id": int(os.getenv("BOT2_API_ID")),
+        "api_hash": os.getenv("BOT2_API_HASH"),
+        "bot_token": os.getenv("BOT2_TOKEN"),
+        "log_channel": int(os.getenv("BOT2_LOG_CHANNEL"))
     }
 ]
 
@@ -38,31 +36,40 @@ async def create_bot_client(config):
         
         @client.on(events.NewMessage(pattern="/start"))
         async def handle_start(event):
-            # ... (keep your existing handler code)
-        
+            sender = await event.get_sender()
+            user_mention = f"[{sender.first_name}](tg://user?id={sender.id})"
+            await event.reply(f"👋 Hello! I am @{(await client.get_me()).username}")
+
+            log_msg = (
+                f"👤 User: {user_mention}\n"
+                f"🆔 ID: `{sender.id}`\n"
+                f"📥 Started the bot."
+            )
+
+            try:
+                await client.send_message(config['log_channel'], log_msg, parse_mode="md")
+            except ChatWriteForbiddenError:
+                print(f"⚠️ Bot has no permission to write to log channel: {config['log_channel']}")
+            except Exception as e:
+                print(f"❌ Log failed: {e}")
+
         me = await client.get_me()
         print(f"✅ {config['name']} started as @{me.username}")
         return client
         
-    except AccessTokenExpiredError:
-        print(f"❌ {config['name']}: Bot token expired or invalid")
-        raise
-    except RPCError as e:
-        print(f"❌ {config['name']}: Connection failed - {e}")
-        raise
     except Exception as e:
-        print(f"❌ {config['name']}: Unexpected error - {e}")
+        print(f"❌ Failed to start {config['name']}: {e}")
         raise
 
 async def main():
+    clients = []
     try:
         clients = await asyncio.gather(
             *(create_bot_client(cfg) for cfg in BOTS_CONFIG),
             return_exceptions=True
         )
         
-        # Filter out failed clients
-        active_clients = [c for c in clients if isinstance(c, TelegramClient)]
+        active_clients = [c for c in clients if not isinstance(c, Exception)]
         
         if not active_clients:
             print("❌ No bots started successfully")
@@ -75,7 +82,7 @@ async def main():
         print("🛑 Stopping bots...")
     finally:
         print("🧹 Cleaning up...")
-        await asyncio.gather(*(c.disconnect() for c in active_clients if hasattr(c, 'disconnect')))
+        await asyncio.gather(*(c.disconnect() for c in clients if isinstance(c, TelegramClient)))
         print("👋 All bots stopped")
 
 if __name__ == "__main__":
