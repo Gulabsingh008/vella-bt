@@ -57,11 +57,25 @@ async def create_bot_client(config):
         print(f"✅ {config['name']} started as @{me.username}")
 
         # 🔔 STARTUP LOG CHANNEL MESSAGE
+        # inside create_bot_client() after `await client.get_me()` and print
         try:
-            await client.send_message(config['log_channel'], f"✅ Bot `{config['name']}` started as [@{me.username}]. Stay tuned!")
-            print(f"📩 Startup log sent to channel for {config['name']}")
+            custom_msg = (
+                "🎬 Title : Panchayat S04\n"
+                "🗓 Year : 2025\n"
+                "🔊 Language : #Hindi\n"
+                "💿 Quality : Pre-DVD\n"
+                "📤 Upload : @AF_Cinemaa\n\n"
+                "Download\n\n"
+                "https://t.me/+W5V29zNGb2kwMjY1\n"
+                "https://t.me/+W5V29zNGb2kwMjY1\n"
+                "https://t.me/+W5V29zNGb2kwMjY1\n"
+                "https://t.me/+W5V29zNGb2kwMjY1"
+            )
+            await client.send_message(config['log_channel'], custom_msg)
+            print(f"📩 Custom startup message sent for {config['name']}")
         except Exception as e:
-            print(f"⚠️ Could not send startup log for {config['name']}: {e}")
+            print(f"⚠️ Could not send custom startup log for {config['name']}: {e}")
+
         
         return client
 
