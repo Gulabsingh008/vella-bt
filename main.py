@@ -7,7 +7,7 @@ from telethon.errors import ChatWriteForbiddenError, AccessTokenExpiredError
 load_dotenv()
 
 BOTS_CONFIG = [
-    {
+        {
         "name": "bot1",
         "api_id": int(os.getenv("BOT1_API_ID")),
         "api_hash": os.getenv("BOT1_API_HASH"),
@@ -20,7 +20,50 @@ BOTS_CONFIG = [
         "api_hash": os.getenv("BOT2_API_HASH"),
         "bot_token": os.getenv("BOT2_TOKEN"),
         "log_channel": int(os.getenv("BOT2_LOG_CHANNEL"))
+    },
+    {
+        "name": "bot3",
+        "api_id": int(os.getenv("BOT3_API_ID")),
+        "api_hash": os.getenv("BOT3_API_HASH"),
+        "bot_token": os.getenv("BOT3_TOKEN"),
+        "log_channel": int(os.getenv("BOT3_LOG_CHANNEL"))
+    },
+    {
+        "name": "bot4",
+        "api_id": int(os.getenv("BOT4_API_ID")),
+        "api_hash": os.getenv("BOT4_API_HASH"),
+        "bot_token": os.getenv("BOT4_TOKEN"),
+        "log_channel": int(os.getenv("BOT4_LOG_CHANNEL"))
+    },
+    {
+        "name": "bot5",
+        "api_id": int(os.getenv("BOT5_API_ID")),
+        "api_hash": os.getenv("BOT5_API_HASH"),
+        "bot_token": os.getenv("BOT5_TOKEN"),
+        "log_channel": int(os.getenv("BOT5_LOG_CHANNEL"))
+    },
+    {
+        "name": "bot6",
+        "api_id": int(os.getenv("BOT6_API_ID")),
+        "api_hash": os.getenv("BOT6_API_HASH"),
+        "bot_token": os.getenv("BOT6_TOKEN"),
+        "log_channel": int(os.getenv("BOT6_LOG_CHANNEL"))
+    },
+    {
+        "name": "bot7",
+        "api_id": int(os.getenv("BOT7_API_ID")),
+        "api_hash": os.getenv("BOT7_API_HASH"),
+        "bot_token": os.getenv("BOT7_TOKEN"),
+        "log_channel": int(os.getenv("BOT7_LOG_CHANNEL"))
+    },
+    {
+        "name": "bot8",
+        "api_id": int(os.getenv("BOT8_API_ID")),
+        "api_hash": os.getenv("BOT8_API_HASH"),
+        "bot_token": os.getenv("BOT8_TOKEN"),
+        "log_channel": int(os.getenv("BOT8_LOG_CHANNEL"))
     }
+
 ]
 
 async def create_bot_client(config):
