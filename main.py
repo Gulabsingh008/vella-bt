@@ -38,14 +38,25 @@ async def create_bot_client(config):
         async def handle_start(event):
             sender = await event.get_sender()
             user_mention = f"[{sender.first_name}](tg://user?id={sender.id})"
-            await event.reply(f"👋 Hello! I am @{(await client.get_me()).username}")
-
+            
+            # 1st message
+            await event.reply("👋 Hello! Welcome to the bot.")
+            
+            # 2nd message
+            await asyncio.sleep(0.5)
+            await event.reply("🎬 Uploading features are active.")
+            
+            # 3rd message
+            await asyncio.sleep(0.5)
+            await event.reply("📥 You can start using the service now.")
+        
+            # Log to log_channel
             log_msg = (
                 f"👤 User: {user_mention}\n"
                 f"🆔 ID: `{sender.id}`\n"
                 f"📥 Started the bot."
             )
-
+        
             try:
                 await client.send_message(config['log_channel'], log_msg, parse_mode="md")
             except ChatWriteForbiddenError:
