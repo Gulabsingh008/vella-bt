@@ -33,7 +33,7 @@ async def create_bot_client(config):
         )
         
         await client.start(bot_token=config['bot_token'])
-        
+
         @client.on(events.NewMessage(pattern="/start"))
         async def handle_start(event):
             sender = await event.get_sender()
@@ -55,12 +55,16 @@ async def create_bot_client(config):
 
         me = await client.get_me()
         print(f"✅ {config['name']} started as @{me.username}")
+
+        # 🔔 STARTUP LOG CHANNEL MESSAGE
         try:
-            await client.send_message(config['log_channel'], f"✅ Bot @{me.username} Started. Stay tuned!")
+            await client.send_message(config['log_channel'], f"✅ Bot `{config['name']}` started as [@{me.username}]. Stay tuned!")
+            print(f"📩 Startup log sent to channel for {config['name']}")
         except Exception as e:
             print(f"⚠️ Could not send startup log for {config['name']}: {e}")
-
         
+        return client
+
     except Exception as e:
         print(f"❌ Failed to start {config['name']}: {e}")
         raise
@@ -72,16 +76,16 @@ async def main():
             *(create_bot_client(cfg) for cfg in BOTS_CONFIG),
             return_exceptions=True
         )
-        
+
         active_clients = [c for c in clients if not isinstance(c, Exception)]
-        
+
         if not active_clients:
             print("❌ No bots started successfully")
             return
-            
+
         print("⚙️ Bots running. Press Ctrl+C to stop")
         await asyncio.gather(*(client.run_until_disconnected() for client in active_clients))
-        
+
     except KeyboardInterrupt:
         print("🛑 Stopping bots...")
     finally:
