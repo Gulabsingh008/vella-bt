@@ -399,13 +399,9 @@ async def create_bot_client(config):
         # inside create_bot_client() after `await client.get_me()` and print
         try:
             custom_msg = (
-                "🎬 Title : Panchayat S04\n"
-                "🗓 Year : 2025\n"
-                "🔊 Language : #Hindi\n"
-                "💿 Quality : Pre-DVD\n"
+                "🎬 Title : Panchayat S04 2025 uploaded\n"
                 "📤 Uploaded By: @Jk_Files\n\n"
-                "Download\n\n"
-                "https://t.me/+I7AR5Pf-KHQ0MzU1\n"
+                "Download link here\n\n"
                 "https://t.me/+I7AR5Pf-KHQ0MzU1\n"
                 "https://t.me/+I7AR5Pf-KHQ0MzU1\n"
                 "https://t.me/+I7AR5Pf-KHQ0MzU1\n\n"
