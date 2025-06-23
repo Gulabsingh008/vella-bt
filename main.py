@@ -9,10 +9,17 @@ load_dotenv()
 BOTS_CONFIG = [
         {
         "name": "bot1",
-        "api_id": int(os.getenv("BOT1_API_ID")),
-        "api_hash": os.getenv("BOT1_API_HASH"),
-        "bot_token": os.getenv("BOT1_TOKEN"),
-        "log_channel": int(os.getenv("BOT1_LOG_CHANNEL"))
+        "api_id": int(os.getenv("BOT10_API_ID")),
+        "api_hash": os.getenv("BOT10_API_HASH"),
+        "bot_token": os.getenv("BOT10_TOKEN"),
+        "log_channel": int(os.getenv("BOT10_LOG_CHANNEL"))
+    },
+        {
+        "name": "bot2",
+        "api_id": int(os.getenv("BOT9_API_ID")),
+        "api_hash": os.getenv("BOT9_API_HASH"),
+        "bot_token": os.getenv("BOT9_TOKEN"),
+        "log_channel": int(os.getenv("BOT9_LOG_CHANNEL"))
     }
 
 ]
