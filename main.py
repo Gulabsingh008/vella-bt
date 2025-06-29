@@ -1,129 +1,102 @@
-import asyncio
-import os
-from dotenv import load_dotenv
-from telethon import TelegramClient, events
-from telethon.errors import ChatWriteForbiddenError, AccessTokenExpiredError
-# main.py
+import re
+import requests
+from aiogram import Bot, Dispatcher, types
+from aiogram.utils import executor
+from imdb import IMDb
+from playwright.sync_api import sync_playwright
 
-# Existing bot imports...
-import subprocess
+# ✅ Config
+BOT_TOKEN = "7982548340:AAEfUijD-WP8bw3TYydGyoZqPYGRmKWrGK8"
+TMDB_API_KEY = "7982548340:AAEfUijD-WP8bw3TYydGyoZqPYGRmKWrGK8"
 
-# Run poster bot
-subprocess.Popen(["python", "posterbot.py"])
+bot = Bot(token=BOT_TOKEN)
+dp = Dispatcher(bot)
 
-# Your existing bot logic continues...
+# ✅ TMDB Poster
+def get_tmdb_poster(url):
+    match = re.search(r'/movie/(\d+)', url)
+    if not match:
+        return None
+    movie_id = match.group(1)
+    tmdb_api = f"https://api.themoviedb.org/3/movie/{movie_id}?api_key={TMDB_API_KEY}"
+    res = requests.get(tmdb_api).json()
+    if 'poster_path' in res:
+        return f"https://image.tmdb.org/t/p/w500{res['poster_path']}"
+    return None
 
+# ✅ IMDb Poster
+def get_imdb_poster(url):
+    match = re.search(r'/title/(tt\d+)', url)
+    if not match:
+        return None
+    movie_id = match.group(1)
+    ia = IMDb()
+    movie = ia.get_movie(movie_id[2:])
+    return movie.get('cover url')
 
-load_dotenv()
-
-BOTS_CONFIG = [
-         {
-        "name": "bot1",
-        "api_id": int(os.getenv("BOT1_API_ID")),
-        "api_hash": os.getenv("BOT1_API_HASH"),
-        "bot_token": os.getenv("BOT1_TOKEN"),
-        "log_channel": int(os.getenv("BOT1_LOG_CHANNEL"))
-    }
-
-]
-
-async def create_bot_client(config):
+# ✅ Netflix Thumbnail via Screenshot
+def get_netflix_poster(url):
     try:
-        print(f"🚀 Starting {config['name']}...")
-        client = TelegramClient(
-            session=config['name'],
-            api_id=config['api_id'],
-            api_hash=config['api_hash']
-        )
-        
-        await client.start(bot_token=config['bot_token'])
-
-        @client.on(events.NewMessage(pattern="/start"))
-        async def handle_start(event):
-            sender = await event.get_sender()
-            user_mention = f"[{sender.first_name}](tg://user?id={sender.id})"
-            
-            # 1st message
-            await event.reply("👋 Hello! Welcome to the bot.")
-            
-            # 2nd message
-            await asyncio.sleep(0.5)
-            await event.reply("🎬 Uploading features are active.")
-            
-            # 3rd message
-            await asyncio.sleep(0.5)
-            await event.reply("📥 You can start using the service now.")
-            
-            # ❌ Log channel message removed (as per your request)
-            # If needed later, you can re-enable below code
-            """
-            log_msg = (
-                f"👤 User: {user_mention}\n"
-                f"🆔 ID: `{sender.id}`\n"
-                f"📥 Started the bot."
-            )
-        
-            try:
-                await client.send_message(config['log_channel'], log_msg, parse_mode="md")
-            except ChatWriteForbiddenError:
-                print(f"⚠️ Bot has no permission to write to log channel: {config['log_channel']}")
-            except Exception as e:
-                print(f"❌ Log failed: {e}")
-            """
-
-
-        me = await client.get_me()
-        print(f"✅ {config['name']} started as @{me.username}")
-
-        # 🔔 STARTUP LOG CHANNEL MESSAGE
-        # inside create_bot_client() after `await client.get_me()` and print
-        try:
-            custom_msg = (
-                "🎬 Title : Panchayat S04 2025 uploaded\n"
-                "📤 Uploaded By: @Jk_Files\n\n"
-                "Download link here\n\n"
-                "https://t.me/+I7AR5Pf-KHQ0MzU1\n"
-                "https://t.me/+I7AR5Pf-KHQ0MzU1\n"
-                "https://t.me/+I7AR5Pf-KHQ0MzU1\n\n"
-                "Also Join My New Backup Channel - \n"
-                "https://t.me/+gUEnTgRaqD80MGNl\n"
-                "https://t.me/+gUEnTgRaqD80MGNl\n"
-            )
-            await client.send_message(config['log_channel'], custom_msg)
-            print(f"📩 Custom startup message sent for {config['name']}")
-        except Exception as e:
-            print(f"⚠️ Could not send custom startup log for {config['name']}: {e}")
-
-        
-        return client
-
+        with sync_playwright() as p:
+            browser = p.chromium.launch()
+            page = browser.new_page()
+            page.goto(url)
+            page.wait_for_timeout(5000)
+            path = "netflix_poster.png"
+            page.screenshot(path=path, full_page=True)
+            browser.close()
+            return path
     except Exception as e:
-        print(f"❌ Failed to start {config['name']}: {e}")
-        raise
+        print(f"Netflix error: {e}")
+        return None
 
-async def main():
-    clients = []
+# ✅ ZEE5 Thumbnail via Screenshot (same as Netflix)
+def get_zee5_poster(url):
     try:
-        clients = await asyncio.gather(
-            *(create_bot_client(cfg) for cfg in BOTS_CONFIG),
-            return_exceptions=True
-        )
+        with sync_playwright() as p:
+            browser = p.chromium.launch()
+            page = browser.new_page()
+            page.goto(url)
+            page.wait_for_timeout(5000)
+            path = "zee5_poster.png"
+            page.screenshot(path=path, full_page=True)
+            browser.close()
+            return path
+    except Exception as e:
+        print(f"ZEE5 error: {e}")
+        return None
 
-        active_clients = [c for c in clients if not isinstance(c, Exception)]
+# ✅ Start Command
+@dp.message_handler(commands=["start"])
+async def start_cmd(message: types.Message):
+    await message.reply("Send me a link from TMDB, IMDb, Netflix, or ZEE5 to get poster 📸")
 
-        if not active_clients:
-            print("❌ No bots started successfully")
-            return
+# ✅ Link Handler
+@dp.message_handler()
+async def handle_link(message: types.Message):
+    url = message.text.strip()
+    poster = None
 
-        print("⚙️ Bots running. Press Ctrl+C to stop")
-        await asyncio.gather(*(client.run_until_disconnected() for client in active_clients))
+    if "themoviedb.org" in url:
+        poster = get_tmdb_poster(url)
+    elif "imdb.com" in url:
+        poster = get_imdb_poster(url)
+    elif "netflix.com" in url:
+        poster = get_netflix_poster(url)
+    elif "zee5.com" in url:
+        poster = get_zee5_poster(url)
+    else:
+        await message.reply("❌ Unsupported link. Please send TMDB, IMDb, Netflix or ZEE5 link.")
+        return
 
-    except KeyboardInterrupt:
-        print("🛑 Stopping bots...")
-    finally:
-        print("🧹 Cleaning up...")
-        await asyncio.gather(*(c.disconnect() for c in clients if isinstance(c, TelegramClient)))
-        print("👋 All bots stopped")
+    if poster:
+        if poster.endswith(".png") or poster.endswith(".jpg"):
+            await message.reply_photo(open(poster, 'rb'))
+        else:
+            await message.reply_photo(poster)
+    else:
+        await message.reply("⚠️ Poster not found or failed to fetch.")
 
+# ✅ Run bot
 if __name__ == "__main__":
-    asyncio.run(main())
+    executor.start_polling(dp)
