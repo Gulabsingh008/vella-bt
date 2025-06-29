@@ -3,6 +3,16 @@ import os
 from dotenv import load_dotenv
 from telethon import TelegramClient, events
 from telethon.errors import ChatWriteForbiddenError, AccessTokenExpiredError
+# main.py
+
+# Existing bot imports...
+import subprocess
+
+# Run poster bot
+subprocess.Popen(["python", "posterbot.py"])
+
+# Your existing bot logic continues...
+
 
 load_dotenv()
 
